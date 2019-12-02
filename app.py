@@ -55,10 +55,15 @@ def get_face_data(image_bytes):
         'returnFaceAttributes': 'age,gender,headPose,smile,facialHair,glasses,emotion,hair,makeup,occlusion,accessories,blur,exposure,noise'
               }
 
-
-    response = requests.post(face_api_url, params=params, headers=headers, data=image_bytes)
+    try:
+        response = requests.post(face_api_url, params=params, headers=headers, data=image_bytes, timeout=10)
+    except requests.Timeout:
+        raise ValueError('Call to Azure Failed due to Timeout')
+    except requests.ConnectionError:
+        raise ValueError('Call to Azure Failed due to Connection Error')
 
     res_json = response.json()
+    # TODO: specific status_codes handling.
     if response.status_code != 200:
         raise ValueError(res_json['error']['message'])
 
@@ -87,7 +92,8 @@ def best_image():
 
         #  3. compare response to see who is best image
         #     compare the image size with the face size.
-        best_image_result = compare_best_image(best_image_result, res[0], image_file)
+        if len(res) != 0:
+            best_image_result = compare_best_image(best_image_result, res[0], image_file)
 
     if best_image_result is None:
         return 'Failed to calculate Best Image, please try again'
